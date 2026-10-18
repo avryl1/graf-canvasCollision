@@ -13,6 +13,8 @@ this.posX = x;
 this.posY = y;
 this.radius = radius;
 this.color = color;
+this.originalColor = color;
+this.isColliding =false;
 this.text = text;
 this.speed = speed;
 this.dx = 1 * this.speed;
@@ -20,7 +22,9 @@ this.dy = 1 * this.speed;
 }
 draw(context) {
 context.beginPath();
-context.strokeStyle = this.color;
+context.strokeStyle = this.isColliding
+    ? "#0000FF"
+    : this.originalColor;
 context.textAlign =
 "center";
 context.textBaseline =
@@ -32,6 +36,14 @@ context.lineWidth = 2;
 context.arc(this.posX, this.posY, this.radius, 0, Math.PI * 2, false);
 context.stroke();
 context.closePath();
+}
+detectCollision(other) {
+    let dx = other.posX - this.posX;
+    let dy = other.posY - this.posY;
+
+    let distance = Math.sqrt(dx * dx + dy * dy);
+
+    return distance <= this.radius + other.radius;
 }
 update(context) {
 this.draw(context);
@@ -66,13 +78,57 @@ circles.push(new Circle(x, y, radius, color, text, speed));
 }
 }
 // Función para animar los círculos
+// Detectar colisiones entre todos los círculos
+function detectAllCollisions() {
+    // Primero, quitar el estado de colisión
+    circles.forEach(circle => {
+        circle.isColliding = false;
+    });
+
+    // Comparar cada círculo con los demás
+    for (let i = 0; i < circles.length; i++) {
+        for (let j = i + 1; j < circles.length; j++) {
+            let circleA = circles[i];
+            let circleB = circles[j];
+
+            if (circleA.detectCollision(circleB)) {
+                circleA.isColliding = true;
+                circleB.isColliding = true;
+            }
+        }
+    }
+}
+
+// Función para animar los círculos
 function animate() {
-ctx.clearRect(0, 0, window_width, window_height); // Limpiar el canvas
-circles.forEach(circle => {
-circle.update(ctx); // Actualizar cada círculo
-});
-requestAnimationFrame(animate); // Repetir la animación
+    ctx.clearRect(0, 0, window_width, window_height);
+
+    // Actualizar la posición de todos los círculos
+    circles.forEach(circle => {
+        circle.posX += circle.dx;
+        circle.posY += circle.dy;
+
+        if (circle.posX + circle.radius > window_width ||
+            circle.posX - circle.radius < 0) {
+            circle.dx = -circle.dx;
+        }
+
+        if (circle.posY + circle.radius > window_height ||
+            circle.posY - circle.radius < 0) {
+            circle.dy = -circle.dy;
+        }
+    });
+
+    // Revisar las colisiones
+    detectAllCollisions();
+
+    // Dibujar los círculos con su color correspondiente
+    circles.forEach(circle => {
+        circle.draw(ctx);
+    });
+
+    requestAnimationFrame(animate);
 }
 // Generar N círculos y comenzar la animación
-generateCircles(5); // Puedes cambiar el número de círculos aquí
+generateCircles(20); // Puedes cambiar el número de círculos aquí
 animate();
