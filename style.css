@@ -1,0 +1,23 @@
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #ff8;
+    overflow: hidden;
+}
+
+h1 {
+    text-align: center;
+    font-size: 22px;
+    margin: 15px 0;
+}
+
+canvas {
+    display: block;
+    width: 100%;
+    height: calc(100vh - 60px);
+}
