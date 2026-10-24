@@ -1,16 +1,30 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detección de colisiones</title>
+    <title>Star Catcher | Práctica 2.5</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>Práctica 2.4: Detección de colisiones</h1>
+    <header class="header">
+        <div>
+            <h1>✦ STAR CATCHER ✦</h1>
+            <p>Atrapa las estrellas y supera tu récord</p>
+        </div>
+        <div class="score-box">
+            <span>ESTRELLAS ATRAPADAS</span>
+            <strong id="score">0</strong>
+        </div>
+    </header>
 
-    <canvas id="canvas"></canvas>
+    <main>
+        <p class="instructions">
+            🖱️ Haz clic en las estrellas para atraparlas.
+            <br>¡Cada 10 puntos aumenta la velocidad!
+        </p>
+        <canvas id="canvas"></canvas>
+    </main>
 
     <script src="colision.js"></script>
 </body>

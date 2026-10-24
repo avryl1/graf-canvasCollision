@@ -1,134 +1,167 @@
 const canvas = document.getElementById("canvas");
-let ctx = canvas.getContext("2d");
-//Obtiene las dimensiones de la pantalla actual
-const window_height = window.innerHeight;
-const window_width = window.innerWidth;
-canvas.height = window_height;
-canvas.width = window_width;
-canvas.style.background =
-"#ff8";
-class Circle {
-constructor(x, y, radius, color, text, speed) {
-this.posX = x;
-this.posY = y;
-this.radius = radius;
-this.color = color;
-this.originalColor = color;
-this.isColliding =false;
-this.text = text;
-this.speed = speed;
-this.dx = 1 * this.speed;
-this.dy = 1 * this.speed;
-}
-draw(context) {
-context.beginPath();
-context.strokeStyle = this.isColliding
-    ? "#0000FF"
-    : this.originalColor;
-context.textAlign =
-"center";
-context.textBaseline =
-"middle";
-context.font =
-"20px Arial";
-context.fillText(this.text, this.posX, this.posY);
-context.lineWidth = 2;
-context.arc(this.posX, this.posY, this.radius, 0, Math.PI * 2, false);
-context.stroke();
-context.closePath();
-}
-detectCollision(other) {
-    let dx = other.posX - this.posX;
-    let dy = other.posY - this.posY;
+const ctx = canvas.getContext("2d");
+const scoreElement = document.getElementById("score");
 
-    let distance = Math.sqrt(dx * dx + dy * dy);
+const TOTAL_STARS = 25;
+const gravity = 0.22;
+const bounceFactor = 0.68;
+const minimumBounce = 1.5;
 
-    return distance <= this.radius + other.radius;
+let score = 0;
+let stars = [];
+let width = 0;
+let height = 0;
+
+const colors = [
+    "#ff5c8a", "#ffd166", "#64e6c2",
+    "#65c7ff", "#c6a0ff", "#ff9f68"
+];
+
+function currentSpeed() {
+    if (score > 20) return Math.random() * 2 + 5;
+    if (score > 10) return Math.random() * 2 + 3;
+    return Math.random() * 2 + 2;
 }
-update(context) {
-this.draw(context);
-// Actualizar la posición X
-this.posX += this.dx;
-// Cambiar la dirección si el círculo llega al borde del canvas en X
-if (this.posX + this.radius > window_width || this.posX - this.radius < 0) {
-this.dx = -this.dx;
-}
-// Actualizar la posición Y
-this.posY += this.dy;
-// Cambiar la dirección si el círculo llega al borde del canvas en Y
-if (this.posY + this.radius > window_height || this.posY - this.radius < 0) {
-    this.dy = -this.dy;
-}
-}
-}
-// Crear un array para almacenar N círculos
-let circles = [];
-// Función para generar círculos aleatorios
-function generateCircles(n) {
-for (let i = 0; i < n; i++) {
-let radius = Math.random() * 30 + 20; // Radio entre 20 y 50
-let x = Math.random() * (window_width - radius * 2) + radius;
-let y = Math.random() * (window_height - radius * 2) + radius;
-let color =
-`#${Math.floor(Math.random()*16777215).toString(16)}`; // Color aleatorio
-let speed = Math.random() * 2 + 1; // Velocidad entre 1 y 3
-let text =
-`C${i + 1}`; // Etiqueta del círculo
-circles.push(new Circle(x, y, radius, color, text, speed));
-}
-}
-// Función para animar los círculos
-// Detectar colisiones entre todos los círculos
-function detectAllCollisions() {
-    // Primero, quitar el estado de colisión
-    circles.forEach(circle => {
-        circle.isColliding = false;
+
+function resizeCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+
+    width = rect.width;
+    height = rect.height;
+
+    canvas.width = Math.round(width * dpr);
+    canvas.height = Math.round(height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    stars.forEach(star => {
+        star.x = Math.max(
+            star.radius,
+            Math.min(width - star.radius, star.x)
+        );
     });
+}
 
-    // Comparar cada círculo con los demás
-    for (let i = 0; i < circles.length; i++) {
-        for (let j = i + 1; j < circles.length; j++) {
-            let circleA = circles[i];
-            let circleB = circles[j];
+class Star {
+    constructor() {
+        this.radius = Math.random() * 10 + 17;
+        this.color = colors[Math.floor(Math.random() * colors.length)];
+        this.reset(true);
+    }
 
-            if (circleA.detectCollision(circleB)) {
-                circleA.isColliding = true;
-                circleB.isColliding = true;
+    reset(randomHeight = false) {
+        this.x = this.radius + Math.random() *
+            Math.max(1, width - this.radius * 2);
+
+        this.y = randomHeight
+            ? -Math.random() * Math.max(height, 200)
+            : -this.radius;
+
+        this.vx = (Math.random() - 0.5) * 1.4;
+        this.vy = currentSpeed();
+    }
+
+    update() {
+        this.x += this.vx;
+
+        if (this.x < this.radius || this.x > width - this.radius) {
+            this.vx *= -1;
+            this.x = Math.max(
+                this.radius,
+                Math.min(width - this.radius, this.x)
+            );
+        }
+
+        this.vy += gravity;
+        this.y += this.vy;
+
+        const floor = height - this.radius;
+
+        if (this.y >= floor) {
+            this.y = floor;
+
+            if (Math.abs(this.vy) > minimumBounce) {
+                this.vy = -Math.abs(this.vy) * bounceFactor;
+            } else {
+                this.reset();
             }
         }
     }
+
+    draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 16;
+
+        ctx.beginPath();
+
+        for (let i = 0; i < 10; i++) {
+            const radius = i % 2 === 0
+                ? this.radius
+                : this.radius * 0.45;
+
+            const angle = -Math.PI / 2 + i * Math.PI / 5;
+            const px = Math.cos(angle) * radius;
+            const py = Math.sin(angle) * radius;
+
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+
+        ctx.closePath();
+        ctx.fillStyle = this.color;
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#ffffff";
+        ctx.stroke();
+
+        ctx.restore();
+    }
+
+    containsPoint(x, y) {
+        return Math.hypot(x - this.x, y - this.y) <= this.radius + 8;
+    }
 }
 
-// Función para animar los círculos
+function createStars() {
+    stars = [];
+
+    for (let i = 0; i < TOTAL_STARS; i++) {
+        stars.push(new Star());
+    }
+}
+
+canvas.addEventListener("click", event => {
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = (event.clientX - rect.left) * (width / rect.width);
+    const mouseY = (event.clientY - rect.top) * (height / rect.height);
+
+    for (let i = stars.length - 1; i >= 0; i--) {
+        if (stars[i].containsPoint(mouseX, mouseY)) {
+            stars[i].reset();
+            score++;
+            scoreElement.textContent = score;
+            break;
+        }
+    }
+});
+
 function animate() {
-    ctx.clearRect(0, 0, window_width, window_height);
+    ctx.clearRect(0, 0, width, height);
 
-    // Actualizar la posición de todos los círculos
-    circles.forEach(circle => {
-        circle.posX += circle.dx;
-        circle.posY += circle.dy;
-
-        if (circle.posX + circle.radius > window_width ||
-            circle.posX - circle.radius < 0) {
-            circle.dx = -circle.dx;
-        }
-
-        if (circle.posY + circle.radius > window_height ||
-            circle.posY - circle.radius < 0) {
-            circle.dy = -circle.dy;
-        }
-    });
-
-    // Revisar las colisiones
-    detectAllCollisions();
-
-    // Dibujar los círculos con su color correspondiente
-    circles.forEach(circle => {
-        circle.draw(ctx);
+    stars.forEach(star => {
+        star.update();
+        star.draw();
     });
 
     requestAnimationFrame(animate);
 }
-// Generar N círculos y comenzar la animación
-generateCircles(20); // Puedes cambiar el número de círculos aquí
+
+window.addEventListener("resize", resizeCanvas);
+
+resizeCanvas();
+createStars();
 animate();
